@@ -55,12 +55,19 @@ def get_expertise_statement(expertise_area):
     )
 
 
-def ask_gpt(question, INPUT_MODEL, selected_expertise):
+def ask_gpt(question, INPUT_MODEL, selected_expertise, add_prompt, system_prompt):
     logging.info(
         f"Asking GPT: question={question[:20]}..., model={INPUT_MODEL}, selected_expertise={selected_expertise}"
     )
     expertise_statement = get_expertise_statement(selected_expertise)
-    question_with_expertise = f"{expertise_statement}\n{question}\nOnly print what needs changing, dont print out everything.\nthink hard and deep.\n double check everything over and over again."
+    prompt_addition = (
+        "\nthink hard and deep.\n double check everything over and over again."
+        if not add_prompt
+        else "\nOnly print what needs changing, dont print out everything. Be brief. \nthink hard and deep.\n double check everything over and over again."
+    )
+    question_with_expertise = (
+        f"{expertise_statement}{system_prompt}{prompt_addition}\n{question}"
+    )
 
     try:
         if INPUT_MODEL == "claude-3-sonnet-20240229":
@@ -136,6 +143,10 @@ if authentication_status:
     INPUT_MODEL = model_options[selected_model]
     logging.info(f"User selected model: {INPUT_MODEL}")
 
+    add_prompt = st.sidebar.checkbox("Be Brief")
+
+    system_prompt = st.sidebar.text_area("System Prompt", height=100)
+
     if not st.secrets.get("OPENAI_API_KEY"):
         logging.error("OpenAI API key not found.")
         st.error("OpenAI API key not found.")
@@ -176,6 +187,8 @@ if authentication_status:
                         message,
                         INPUT_MODEL,
                         selected_expertise,
+                        add_prompt,
+                        system_prompt,
                     )
                     st.session_state["response"] = response
                 else:
