@@ -1,219 +1,156 @@
+#!/usr/bin/env python
+import logging
 import os
 import streamlit as st
-import openai
-import json
-import logging
-import anthropic
-import graphviz
+from pydantic import BaseModel
+from crewai.flow import Flow, listen, start
 import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
+from crews.jarvis_crew.jarvis_crew import JarvisCrew
+import subprocess  # Added for secure subprocess handling
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-# Streamlit styling
-st.markdown(
-    """
-    <style>
-        body {
-            background-color: #333333;
-            color: #00FF00;
-        }
-        .stTextArea textarea, .stButton>button, .stSidebar,
-        .stSidebar>div {
-            background-color: #333333;
-            color: #00FF00;
-        }
-        .stButton>button:hover {
-            background-color: #444444;
-        }
-        .stAlert, .stMarkdown {
-            background-color: #333333;
-            color: #00FF00;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Add logging configuration
 
 
-def get_expertise_statement(expertise_area):
-    logging.info(f"Getting expertise statement for {expertise_area}")
-    expertise_statements = {
-        "Python": "As a Python development expert, you engage in profound analysis and meticulous double-checking to guarantee the utmost consistency and coherence in your solutions, continuously solving complex problems with precision.",
-        "Javascript": "As a Node.js development expert, you apply thorough and reflective analysis, coupled with rigorous double-checking, to deliver highly consistent and coherent solutions, adeptly solving complex issues.",
-        "Flutter": "As a Flutter/Dart development expert, you combine intensive analytical thinking and careful double-checking to achieve optimal consistency and coherence, expertly addressing challenging problems.",
-        "Diagram": "You excel at generating precise and coherent graphviz gradient cluster diagrams for code and process representations, ensuring clarity and accuracy. Return only the graphviz script without additional text or formatting. Do not start the response with ```. I want an Advanced fancy Diagram. I want large text fonts, and readable graphs. The graph must read from top to bottom. Ensure I can see Start at the top, End at the bottom and all conditions related to the different processes (each process in its own cluster).",
-        "General": "As an expert across various domains, you employ deep analytical thinking and thorough double-checking to ensure exceptional consistency and coherence, resolving intricate challenges with remarkable problem-solving skills.",
-    }
-    return expertise_statements.get(
-        expertise_area,
-        "You are an expert who values consistency and coherence. Only print what needs changing, dont print out everything.",
-    )
+class JarvisState(BaseModel):
+    data: str = ""
 
 
-def ask_gpt(question, INPUT_MODEL, selected_expertise, add_prompt, system_prompt):
-    logging.info(
-        f"Asking GPT: question={question[:20]}..., model={INPUT_MODEL}, selected_expertise={selected_expertise}"
-    )
-    expertise_statement = get_expertise_statement(selected_expertise)
-    prompt_addition = (
-        "\nthink hard and deep.\n double check everything over and over again."
-        if not add_prompt
-        else "\nOnly print what needs changing, dont print out everything. Be brief. \nthink hard and deep.\n double check everything over and over again."
-    )
-    question_with_expertise = (
-        f"{expertise_statement}{system_prompt}{prompt_addition}\n{question}"
-    )
+class JarvisFlow(Flow[JarvisState]):
+    def __init__(self, initial_state: JarvisState):
+        super().__init__()
+        self._state = initial_state
 
+    @start()
+    def generate_data(self):
+        print(f"Entering generate_data method with inputs provided: {self._state.data}")
+
+    @listen(generate_data)
+    def generate_python_code(self):
+        try:
+            print("Initializing JarvisCrew...")
+            inputs = {"data": self._state.data}
+
+            results = JarvisCrew().python_developement_team().kickoff(inputs=inputs)
+
+            # print(f"Results: {results.pydantic}")
+
+            self.python_code = results.pydantic.model_dump().get("python_code", "")
+            print(f"Generated Python code: {self.python_code}")
+
+            return self.python_code
+
+        except Exception as e:
+            print(f"Error in JarvisCrew execution: {e}")
+            self.python_code = ""
+
+
+def plot():
+    jarvis_flow = JarvisFlow(JarvisState())
+    jarvis_flow.plot()
+
+
+def main() -> None:
     try:
-        if INPUT_MODEL == "claude-3-sonnet-20240229":
-            response = ask_anthropic(question_with_expertise, INPUT_MODEL)
-        else:
-            response = ask_openai(question_with_expertise, INPUT_MODEL)
-        return response
-    except Exception as e:
-        logging.error(f"Error occurred while asking model: {e}")
-        return f"Error occurred: {str(e)}"
+        print("Checking if config.yaml exists")
+        if not os.path.exists("src\jarvis\main.py"):
+            st.error("Configuration file 'config.yaml' not found.")
+            print("Configuration file 'config.yaml' not found.")
+            st.stop()
 
+        print("Loading user credentials from config.yaml")
+        with open("config.yaml") as file:
+            config = yaml.load(file, Loader=yaml.SafeLoader)
+            print(f"Config loaded: {config}")
 
-def ask_openai(question_with_expertise, INPUT_MODEL):
-    chat_completion = openai.ChatCompletion.create(
-        model="gpt-4o", messages=[{"role": "user", "content": question_with_expertise}]
-    )
-    return chat_completion.choices[0].message.content
-
-
-def ask_anthropic(question_with_expertise, INPUT_MODEL):
-    logging.info("Asking Anthropic using SDK")
-    client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-
-    try:
-        response = client.messages.create(
-            model=INPUT_MODEL,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": question_with_expertise}],
+        selected_expertise = st.sidebar.radio(
+            "Expertise Area",
+            ("Python", "Javascript", "Flutter", "Diagram", "General", "PyTM"),
         )
-        logging.debug(f"Anthropic SDK response: {response}")
-        if response.content:
-            return response.content[0].text
-        else:
-            raise Exception("No content in Anthropic response")
-    except anthropic.APIError as e:
-        logging.error(f"Anthropic API error: {str(e)}")
-        raise Exception(f"Anthropic API error: {str(e)}")
-    except Exception as e:
-        logging.error(f"Unexpected error when calling Anthropic: {str(e)}")
-        raise
+        print("User selected expertise area: {}".format(selected_expertise))
 
+        if not st.secrets.get("OPENAI_API_KEY"):
+            st.error(
+                "OpenAI API key is missing. Please check your secrets configuration."
+            )
+            print("OpenAI API key is missing.")
+            st.stop()
 
-# Load user credentials from yaml
-with open("config.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
+        print("Setting OpenAI API key")
 
-# Create Streamlit Authenticator
-authenticator = stauth.Authenticate(
-    credentials=config["credentials"],
-    cookie_name=config["cookie"]["name"],
-    key=config["cookie"]["key"],
-    cookie_expiry_days=config["cookie"]["expiry_days"],  # corrected parameter name
-)
+        data = st.text_area("Request:", value="", height=150)
+        print("User input data: {}".format(data))
 
-# Start login
-name, authentication_status, username = authenticator.login()
+        print("Creating button container for layout")
+        button_container = st.container()
 
-if authentication_status:
-    selected_expertise = st.sidebar.radio(
-        "Expertise Area", ("Python", "Javascript", "Flutter", "Diagram", "General")
-    )
-    logging.info(f"User selected expertise area: {selected_expertise}")
+        with button_container:
+            submit_button = st.columns([1])[0]  # Only keep the submit button
 
-    model_options = {
-        "Sonnet-3.5": "claude-3-sonnet-20240229",
-        "GPT-4o": "gpt-4o",
-        "GPT-o1": "o1-preview",
-    }
+            with submit_button:
+                if st.button("Submit"):
+                    print("Submit button clicked")
+                    if data:
+                        print("Processing message: {}...".format(data[:20]))
+                        state = JarvisState(data=data)
+                        jarvis_flow = JarvisFlow(initial_state=state)
+                        response = jarvis_flow.kickoff()
+                        print(f"Response before setting session state: {response}")
+                        st.session_state["response"] = response
+                        print(
+                            f"Updated session state with response: {st.session_state.get('response')}"
+                        )
+                    else:
+                        print("No message provided by the user")
 
-    selected_model = st.sidebar.radio(
-        "Select model", list(model_options.keys()), format_func=lambda k: k
-    )
-    INPUT_MODEL = model_options[selected_model]
-    logging.info(f"User selected model: {INPUT_MODEL}")
+        if "response" in st.session_state and st.session_state["response"]:
+            print("Displaying response after processing")
+            if selected_expertise == "Diagram":
+                try:
+                    graphviz_code = st.session_state["response"].strip("```").strip()
+                    print(f"Graphviz code to render: {graphviz_code}")
+                    st.graphviz_chart(graphviz_code)
+                    print("Graphviz diagram rendered successfully")
+                except Exception as e:
+                    print("Failed to render Graphviz diagram: {}".format(e))
+                    st.error(f"Error occurred while rendering diagram: {e}")
+            elif selected_expertise == "PyTM":
+                try:
+                    print("Generating PyTM diagram...")
+                    pytm_output = "output.py"
+                    with open(pytm_output, "w") as f:
+                        f.write(st.session_state["response"])
+                        print(f"PyTM output written to: {pytm_output}")
 
-    add_prompt = st.sidebar.checkbox("Be Brief")
-
-    system_prompt = st.sidebar.text_area("System Prompt", height=100)
-
-    if not st.secrets.get("OPENAI_API_KEY"):
-        logging.error("OpenAI API key not found.")
-        st.error("OpenAI API key not found.")
-        st.stop()
-
-    if not st.secrets.get("ANTHROPIC_API_KEY"):
-        logging.error("Anthropic API key not found.")
-        st.error("Anthropic API key not found.")
-        st.stop()
-
-    logging.info("Setting OpenAI API key")
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-    # Initialize or reset history
-    if "history" not in st.session_state:
-        st.session_state["history"] = []
-        st.session_state["reset_history"] = False
-
-    if st.session_state["reset_history"]:
-        st.session_state["history"] = []
-        st.session_state["reset_history"] = False
-
-    message = st.text_area("Message:", value="", height=150)
-
-    # Container for buttons to ensure they are properly laid out
-    button_container = st.container()
-
-    with button_container:
-        submit_button, clear_history_button = st.columns([1, 5])
-
-        with submit_button:
-            if st.button("Submit"):
-                logging.info("Submit button clicked")
-                if message:
-                    logging.info(f"Processing message: {message[:20]}...")
-                    st.session_state["history"].append(message)
-                    response = ask_gpt(
-                        message,
-                        INPUT_MODEL,
-                        selected_expertise,
-                        add_prompt,
-                        system_prompt,
+                    command = ["python", pytm_output, "--dfd"]
+                    print(f"Running command: {command}")
+                    subprocess.run(command, check=True)
+                    subprocess.run(
+                        ["dot", "-Tpng", "-o", "output.png"],
+                        input="output.py",
+                        text=True,
+                        check=True,
                     )
-                    st.session_state["response"] = response
-                else:
-                    logging.info("No message provided by the user")
+                    print("PyTM diagram generated successfully")
 
-        with clear_history_button:
-            if st.button("Clear History"):
-                logging.info("Clear History button clicked")
-                st.session_state["reset_history"] = True
-                st.session_state["history"] = []
-                st.session_state["response"] = ""
-
-    # Display the response after processing
-    if "response" in st.session_state and st.session_state["response"]:
-        if selected_expertise == "Diagram":
-            try:
-                graphviz_code = st.session_state["response"].strip("```").strip()
-                st.graphviz_chart(graphviz_code)
-            except Exception as e:
-                logging.error(f"Failed to render Graphviz diagram: {e}")
-                st.error(f"Error occurred while rendering diagram: {e}")
+                    st.image(
+                        "output.png",
+                        caption="Generated PNG diagram",
+                        use_container_width=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    print("Subprocess failed: {}".format(e))
+                    st.error("Failed to generate diagram. Please check your input.")
+            else:
+                print(f"Displaying response: {st.session_state['response']}")
+                st.write(f"**_zeus:** {st.session_state['response']}\n")
         else:
-            st.write(f"**_zeus:** {st.session_state['response']}\n")
+            st.warning(
+                "No valid response was generated. Please check your input or try again."
+            )
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        st.error("An unexpected error occurred. Please try again later.")
 
-elif authentication_status == False:
-    st.error("Username/password is incorrect")
-elif authentication_status == None:
-    st.warning("Please enter your username and password")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,19 @@
+get_python_code:
+  description: |
+    Generate well-structured Python code along with comprehensive explanations that address the request provided here: {data}. 
+    The code should be executable in a Python environment and adhere to best practices.
+  expected_output: >
+    A JSON object containing the following fields:
+    - python_code_and_explanations: A well-organized Python code formatted in optimal markdown, accompanied by explanatory text that effectively addresses the request received here: {data}.
+  agent: python_developer
+
+code_review:
+  description: >
+    conduct a thorough review of the generated python code blocks and accompanying non code explanatory text to highlight the code blocks in markdown code blocks, and frmat text in best way possible for markdown rendering. ensure that the code is executable in a python environment and properly formatted in markdown. the explanatory text should be clear, concise, and well-structured.
+    do not comment the code.
+    ensure all code is inside a code block and all text is inside a text block.
+  expected_output: >
+    put everything in code blocks and text blocks.
+
+    do not use titles or bullet points. all text should be small caps. all text should be formatted correctly in code blocks or text blocks. code should be put inside ``` and ```. for example, python code should start with ```json and end with ```, etc.
+  agent: code_reviewer
