@@ -1,52 +1,70 @@
-from anthropic import BaseModel
+import subprocess
+from pydantic import BaseModel
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
-
 from crewai import LLM
+from typing import List
 
 gpt_4o_mini = LLM(model="azure/gpt-4o-mini", api_version="2024-05-01-preview")
+
+from crewai_tools import FileWriterTool
 
 
 @CrewBase
 class JarvisCrew:
 
     @agent
-    def python_developer(self) -> Agent:
+    def developer(self) -> Agent:
         return Agent(
-            config=self.agents_config["python_developer"],
+            config=self.agents_config["developer"],
             llm=gpt_4o_mini,
         )
 
     @agent
-    def code_reviewer(self) -> Agent:
+    def diagrammer(self) -> Agent:
         return Agent(
-            config=self.agents_config["code_reviewer"],
+            config=self.agents_config["diagrammer"],
             llm=gpt_4o_mini,
         )
 
     @task
-    def get_python_code(self) -> Task:
+    def generate_code(self) -> Task:
         return Task(
-            config=self.tasks_config["get_python_code"],
-            output_pydantic=JarvisPythonCode,
+            config=self.tasks_config["generate_code"],
+            output_pydantic=JarvisCode,
         )
 
     @task
-    def code_review(self) -> Task:
+    def generate_diagram(self) -> Task:
         return Task(
-            config=self.tasks_config["code_review"],
-            output_pydantic=JarvisPythonCode,
+            config=self.tasks_config["generate_diagram"],
+            output_pydantic=JarvisDiagram,
         )
 
     @crew
-    def python_developement_team(self) -> Crew:
+    def development_team(self) -> Crew:
         return Crew(
-            agents=self.agents,
-            tasks=self.tasks,
+            agents=[self.developer()],
+            tasks=[self.generate_code()],
+            process=Process.sequential,
+            verbose=True,
+        )
+
+    @crew
+    def diagrammer_team(self) -> Crew:
+        return Crew(
+            agents=[self.diagrammer()],
+            tasks=[self.generate_diagram()],
             process=Process.sequential,
             verbose=True,
         )
 
 
-class JarvisPythonCode(BaseModel):
-    python_code: str
+class JarvisCode(BaseModel):
+    code: str
+    text: str
+
+
+class JarvisDiagram(BaseModel):
+    diagram_code: str
+    diagram_text: str

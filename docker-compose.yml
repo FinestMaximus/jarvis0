@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8051:8051"
+    environment:
+      - ENV=development # You can change this as needed
+    volumes:
+      - .:/app # Mount the current directory to /app in the container

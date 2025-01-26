@@ -1,19 +1,51 @@
-get_python_code:
+generate_code:
   description: |
-    Generate well-structured Python code along with comprehensive explanations that address the request provided here: {data}. 
-    The code should be executable in a Python environment and adhere to best practices.
-  expected_output: >
-    A JSON object containing the following fields:
-    - python_code_and_explanations: A well-organized Python code formatted in optimal markdown, accompanied by explanatory text that effectively addresses the request received here: {data}.
-  agent: python_developer
+    - Generate reliable and well-structured Python code that effectively addresses the request provided here: {instruction}.
+    - Your field of expertise is: {expertise}.
+    - The language of the code is: {language}.
+    - Conduct a comprehensive review of the generated Python code and the accompanying explanatory text.
+    - Ensure the explanatory text is clear, concise, and well-structured, formatted as markdown paragraphs.
+    - Highlight the code using markdown code formatting, ensuring it is enclosed in a single code block.
+    - Utilize heading level 5 for any titles in the explanatory text (##### heading level 5).
+  expected_output: |
+    - JSON object with two keys: "code" and "text":
+      - "code" should be a string containing the generated code in the language specified in the instruction:
+          - Code blocks should be enclosed in triple backticks (```).
+          - Specific formats for different languages, e.g.:
+            - Python code block should begin with ```python and end with ```.
+            - Dart code block should begin with ```dart and end with ```.
+            - JavaScript code block should begin with ```javascript and end with ```.
+            - JSON code block should start with ```json and conclude with ```.
+      - "text" should be a string containing the explanatory text:
+        - Text blocks should be formatted as markdown paragraphs.
+  agent: developer
 
-code_review:
-  description: >
-    conduct a thorough review of the generated python code blocks and accompanying non code explanatory text to highlight the code blocks in markdown code blocks, and frmat text in best way possible for markdown rendering. ensure that the code is executable in a python environment and properly formatted in markdown. the explanatory text should be clear, concise, and well-structured.
-    do not comment the code.
-    ensure all code is inside a code block and all text is inside a text block.
-  expected_output: >
-    put everything in code blocks and text blocks.
-
-    do not use titles or bullet points. all text should be small caps. all text should be formatted correctly in code blocks or text blocks. code should be put inside ``` and ```. for example, python code should start with ```json and end with ```, etc.
-  agent: code_reviewer
+generate_diagram:
+  description: |
+    - Task: Generate a comprehensive and detailed diagram that thoroughly addresses the instruction provided here: {instruction}.
+    - Task: Utilize your field of expertise: {expertise}, with a specific focus on: {diagram_type}.
+    - Task: Ensure the diagram is clear, accurate, and visually appealing, adhering to established best practices in diagram design.
+    - Task: Structure the diagram to facilitate understanding, incorporating distinct clusters that represent different processes and their interconnections.
+    - Task: Organize the diagram to read from top to bottom, clearly indicating the start and end points, as well as all conditions and decision points related to the various processes.
+    - Task: Utilize appropriate diagramming conventions, including precise labeling, effective color coding, and a logical layout that enhances readability.
+    - Task: Provide a markdown formatted output that includes both the diagram code and explanatory text, ensuring that the text is informative, relevant, and enhances the understanding of the diagram.
+    - Task: Return only the diagram code prefixed with ```python``` and without any additional text, ensuring it ends with ```.
+    - Task: Ensure the diagram code is meticulously clear and organized for easy readability and comprehension.
+    - Task: Make the explanatory text concise, directly related to the diagram, and provide necessary context to aid understanding.
+    - Task: When reviewing the code, ensure there is one single code block and one single text block.
+    - Task: For Graphviz, adhere to the DOT language structure, which has specific guidelines for defining nodes and edges. Use that structure for the diagram.
+    - Task: If the diagram type is pytm, ensure that the output starts with ```python.
+  expected_output: |
+    - JSON object with two keys: "diagram_code" and "diagram_text":
+      - "diagram_code" should be a string containing the generated code in the language specified in the instruction:
+        - Code blocks must be enclosed in triple backticks (```).
+        - Specific formats for different languages must be used:
+          - Graphviz code must start with ```graphviz and end with ```.
+          - When using pytm in {diagram_type}, make absolutely sure that e.g.:
+            - The diagram_code is enclosed in a single code block that starts with ```python and ends with ```.
+            - The diagram_code is a valid Python code block that can be executed.
+            - The diagram_code is a single code block that does not contain any other text or code blocks.
+        - The diagram code must be clear, organized, and easy to read.
+      - "diagram_text" should be a string containing the explanatory text:
+        - The explanatory text must be concise, relevant to the diagram, and formatted as markdown paragraphs.
+  agent: diagrammer
