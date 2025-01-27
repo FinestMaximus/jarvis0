@@ -1,3 +1,4 @@
+
 from pytm import (
     TM,
     Actor,
@@ -6,26 +7,22 @@ from pytm import (
     Data,
     Dataflow,
     Datastore,
-    Lambda,
     Server,
     DatastoreType,
 )
 
-tm = TM("API Backend Service Threat Model")
-tm.description = "This threat model outlines an API communicating with backend services. The API receives requests from users, processes them, and interacts with various backend services for data storage and retrieval."
+tm = TM("API Backend Services TM")
+tm.description = "This threat model describes an API interfacing with various backend services. It shows user interaction to the API, with data flow through the backend services and databases. It aims to identify potential security threats across the architecture."
 tm.isOrdered = True
 tm.mergeResponses = True
 tm.assumptions = [
-    "The API is accessible over the internet and interacts with backend services securely.",
+    "Assumes all services are hosted in a secured environment.",
+    "Assumes that all data is encrypted in transit.",
 ]
 
 internet = Boundary("Internet")
-
-api_boundary = Boundary("API Gateway")
-api_boundary.levels = [2]
-
-backend_service_boundary = Boundary("Backend Services")
-backend_service_boundary.levels = [2]
+backend_services = Boundary("Backend Services")
+backend_services.levels = [2]
 
 user = Actor("User")
 user.inBoundary = internet
@@ -37,51 +34,50 @@ api_server.controls.isHardened = True
 api_server.controls.sanitizesInput = True
 api_server.controls.encodesOutput = True
 api_server.controls.authorizesSource = True
-api_server.sourceFiles = ["api/main.py", "api/docs.md"]
+api_server.sourceFiles = ["api_service/main.py"]
 
-user_requests = Data(
-    "User requests to the API", classification=Classification.PUBLIC
+service_db = Datastore("Service Database")
+service_db.OS = "PostgreSQL"
+service_db.controls.isHardened = True
+service_db.inBoundary = backend_services
+service_db.type = DatastoreType.SQL
+service_db.inScope = True
+service_db.maxClassification = Classification.RESTRICTED
+
+identity_service = Server("Identity Verification Service")
+identity_service.OS = "CentOS"
+identity_service.controls.isHardened = True
+identity_service.inBoundary = backend_services
+
+user_request_data = Data(
+    "User Request and Data", classification=Classification.SECRET
 )
-user_to_api = Dataflow(user, api_server, "User sends request to API (*)")
-user_to_api.protocol = "HTTP"
-user_to_api.dstPort = 80
-user_to_api.data = user_requests
-user_to_api.note = "This allows users to interact with the API."
+user_to_api = Dataflow(user, api_server, "User sends request to API")
+user_to_api.protocol = "HTTPS"
+user_to_api.dstPort = 443
+user_to_api.data = user_request_data
+user_to_api.note = "Securely sends user data to the API"
 
-response_data = Data(
-    "API response data", classification=Classification.PUBLIC
+api_to_service_db = Dataflow(api_server, service_db, "API communicates with Service DB")
+api_to_service_db.protocol = "PostgreSQL"
+api_to_service_db.dstPort = 5432
+api_to_service_db.data = user_request_data
+api_to_service_db.note = "API queries the Service Database"
+
+service_response_data = Data(
+    "Response from Service", classification=Classification.PUBLIC
 )
-api_to_user = Dataflow(api_server, user, "API responds to the user (*)")
-api_to_user.protocol = "HTTP"
-api_to_user.data = response_data
-api_to_user.responseTo = user_to_api
+service_db_to_api = Dataflow(service_db, api_server, "Service DB response to API")
+service_db_to_api.protocol = "PostgreSQL"
+service_db_to_api.dstPort = 5432
+service_db_to_api.data = service_response_data
+service_db_to_api.note = "Service database responds back to API"
 
-backend_service = Datastore("Backend Database")
-backend_service.OS = "CentOS"
-backend_service.controls.isHardened = True
-backend_service.inBoundary = backend_service_boundary
-backend_service.type = DatastoreType.SQL
-backend_service.inScope = True
-backend_service.maxClassification = Classification.RESTRICTED
-backend_service.levels = [2]
-
-query_data = Data(
-    "Query data for processing", classification=Classification.PUBLIC
-)
-api_to_db = Dataflow(api_server, backend_service, "API sends data to backend DB")
-api_to_db.protocol = "MySQL"
-api_to_db.dstPort = 3306
-api_to_db.data = query_data
-api_to_db.note = "This sends relevant data to the database for processing."
-
-retrieved_data = Data(
-    "Data retrieved from backend services", classification=Classification.PUBLIC
-)
-db_to_api = Dataflow(backend_service, api_server, "Backend DB retrieves data for API")
-db_to_api.protocol = "MySQL"
-db_to_api.dstPort = 3306
-db_to_api.data = retrieved_data
-api_to_db.responseTo = api_to_db
+api_to_user = Dataflow(api_server, user, "API returns response to User")
+api_to_user.protocol = "HTTPS"
+api_to_user.dstPort = 443
+api_to_user.data = service_response_data
+api_to_user.note = "API sends the response to the user"
 
 if __name__ == "__main__":
     tm.process()

@@ -3,11 +3,14 @@ from pydantic import BaseModel
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai import LLM
-from typing import List
 
 gpt_4o_mini = LLM(model="azure/gpt-4o-mini", api_version="2024-05-01-preview")
 
-from crewai_tools import FileWriterTool
+from crewai_tools import CodeDocsSearchTool
+
+pytm_docs = CodeDocsSearchTool(
+    docs_url="https://raw.githubusercontent.com/OWASP/pytm/refs/heads/master/docs/pytm/index.html"
+)
 
 
 @CrewBase
@@ -25,6 +28,7 @@ class JarvisCrew:
         return Agent(
             config=self.agents_config["diagrammer"],
             llm=gpt_4o_mini,
+            tools=[pytm_docs],
         )
 
     @task
@@ -47,7 +51,7 @@ class JarvisCrew:
             agents=[self.developer()],
             tasks=[self.generate_code()],
             process=Process.sequential,
-            verbose=True,
+            verbose=False,
         )
 
     @crew
@@ -56,13 +60,13 @@ class JarvisCrew:
             agents=[self.diagrammer()],
             tasks=[self.generate_diagram()],
             process=Process.sequential,
-            verbose=True,
+            verbose=False,
         )
 
 
 class JarvisCode(BaseModel):
-    code: str
     text: str
+    code: str
 
 
 class JarvisDiagram(BaseModel):

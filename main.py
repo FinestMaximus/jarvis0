@@ -155,7 +155,7 @@ def main() -> None:
             ),
             "PyTM": (
                 """This task involves PyTM related queries. You are an expert in PyTM, a Python-based tool for creating and managing technical documents. You are able to generate PyTM code and diagrams that are both accurate and visually appealing. You are also able to generate PyTM code that is both accurate and visually appealing. You are also able to generate PyTM code that is both accurate and visually appealing. you're a pytm threat modeling expert, who only sends python code back (no other output). Based on current context // more prompting here..
-            (example of a pytm threat model) build a similar file for the application described in this prompt.
+                (example of a pytm threat model) build a similar file for the application described in this prompt.
                     You MUST only respond with the Python code block. See below for a simple example of the required format and syntax for your output.
                     You must also be consistent and coherent with the example below:
 
@@ -370,25 +370,29 @@ def main() -> None:
                     )
                 with open("pytm_output.py", "w") as file:
                     file.write(response_blocks.get("diagram_code"))
-                interpreter.chat(
-                    "run this command and return the output file path: python pytm_output.py --dfd | dot -Tpng -o output.png"
-                )
-                st.image("output.png", use_container_width=True)
-                interpreter.chat(
-                    "run this command and return the output file path: python pytm_output.py --dfd | dot -Tpng -o output.png"
-                )
-                st.image("output.png", use_container_width=True)
-                interpreter.chat(
-                    "run this command and return the output file path: python pytm_output.py --report sample_template.txt | pandoc -f markdown -t html > output.html"
-                )
-                st.markdown(open("output.html").read())
-                interpreter.chat(
-                    "run this command and return the output file path: python output.py --seq | plantuml -tpng -pipe > seq_output.png"
-                )
-                st.image("seq_output.png", use_container_width=True)
+
+                command = "python pytm_output.py --dfd | dot -Tpng -o output.png"
+                subprocess.run(command, shell=True, check=True)
+
+                command_seq = "python3 pytm_output.py --seq | plantuml -tpng -pipe > seq_output.png"
+                subprocess.run(command_seq, shell=True, check=True)
+                col1, col2 = st.columns(2)
+
+                command_report = "python pytm_output.py --report sample_report.txt | pandoc -f markdown > output-report.md"
+                subprocess.run(command_report, shell=True, check=True)
+
+                with col1:
+                    st.image("output.png", use_container_width=True)
+                with col2:
+                    st.image("seq_output.png", use_container_width=True)
+
+                st.markdown(open("output-report.md").read())
             elif response_type == "code":
                 st.markdown(response_blocks.get("text"))
-                st.markdown(response_blocks.get("code"))
+                with st.expander("View Code"):
+                    st.markdown(
+                        f"```{response_type}\n" + response_blocks.get("code") + "\n```"
+                    )
             else:
                 st.warning("Unsupported response type.")
         else:

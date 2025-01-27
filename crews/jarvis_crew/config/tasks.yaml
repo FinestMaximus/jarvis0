@@ -22,30 +22,30 @@ generate_code:
 
 generate_diagram:
   description: |
-    - Task: Generate a comprehensive and detailed diagram that thoroughly addresses the instruction provided here: {instruction}.
-    - Task: Utilize your field of expertise: {expertise}, with a specific focus on: {diagram_type}.
-    - Task: Ensure the diagram is clear, accurate, and visually appealing, adhering to established best practices in diagram design.
-    - Task: Structure the diagram to facilitate understanding, incorporating distinct clusters that represent different processes and their interconnections.
-    - Task: Organize the diagram to read from top to bottom, clearly indicating the start and end points, as well as all conditions and decision points related to the various processes.
-    - Task: Utilize appropriate diagramming conventions, including precise labeling, effective color coding, and a logical layout that enhances readability.
-    - Task: Provide a markdown formatted output that includes both the diagram code and explanatory text, ensuring that the text is informative, relevant, and enhances the understanding of the diagram.
-    - Task: Return only the diagram code prefixed with ```python``` and without any additional text, ensuring it ends with ```.
-    - Task: Ensure the diagram code is meticulously clear and organized for easy readability and comprehension.
-    - Task: Make the explanatory text concise, directly related to the diagram, and provide necessary context to aid understanding.
-    - Task: When reviewing the code, ensure there is one single code block and one single text block.
-    - Task: For Graphviz, adhere to the DOT language structure, which has specific guidelines for defining nodes and edges. Use that structure for the diagram.
-    - Task: If the diagram type is pytm, ensure that the output starts with ```python.
+    - Generate a comprehensive and detailed diagram that thoroughly addresses the instruction provided here: {instruction}.
+    - Utilize your field of expertise: {expertise}, with a specific focus on: {diagram_type}.
+    - Ensure the diagram is clear, accurate, and visually appealing, adhering to established best practices in diagram design.
+    - Structure the diagram to facilitate understanding, incorporating distinct clusters that represent different processes and their interconnections.
+    - Utilize appropriate diagramming conventions, including precise labeling, effective color coding, and a logical layout that enhances readability.
+    - Provide a markdown formatted output that includes both the diagram code and explanatory text, ensuring that the text is informative, relevant, and enhances the understanding of the diagram.
+    - Ensure the diagram code is meticulously clear and organized for easy readability and comprehension.
+    - Make the explanatory text concise, directly related to the diagram, and provide necessary context to aid understanding.
+    - When reviewing the code, ensure there is one single code block and one single text block.
+    - If {diagram_type} is Graphviz, adhere to the DOT language structure, which has specific guidelines for defining nodes and edges. Use that structure for the diagram.
+    - All diagrams should be read from left to right.
+    - For Pytm syntax, use the pytm docs to find the correct syntax.
+    - If {diagram_type} is pytm, ensure that the code is properly formatted and syntax is correct as a python code block.
+    - Ensure the generated code complies with the requirements outlined below:
+      - Ensure the diagram code is valid and executable.
+      - Provide a single code block without extra text.
+      - Include one code block and one text block.
+      - Make the diagram code clear and readable.
+      - Correct any syntax errors.
+      - Implement security measures for resilience.
+      - Review the code for accuracy and best practices in {diagram_type}.
+      - Use your expertise in {diagram_type} to enhance code quality.
   expected_output: |
-    - JSON object with two keys: "diagram_code" and "diagram_text":
-      - "diagram_code" should be a string containing the generated code in the language specified in the instruction:
-        - Code blocks must be enclosed in triple backticks (```).
-        - Specific formats for different languages must be used:
-          - Graphviz code must start with ```graphviz and end with ```.
-          - When using pytm in {diagram_type}, make absolutely sure that e.g.:
-            - The diagram_code is enclosed in a single code block that starts with ```python and ends with ```.
-            - The diagram_code is a valid Python code block that can be executed.
-            - The diagram_code is a single code block that does not contain any other text or code blocks.
-        - The diagram code must be clear, organized, and easy to read.
-      - "diagram_text" should be a string containing the explanatory text:
-        - The explanatory text must be concise, relevant to the diagram, and formatted as markdown paragraphs.
+    - JSON object with keys: "diagram_code" and "diagram_text":
+      - "diagram_code" is a code block with the generated code in the specified language, clear and organized.
+      - "diagram_text" is a string with concise, relevant explanatory text in markdown format.
   agent: diagrammer

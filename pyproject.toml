@@ -5,7 +5,6 @@ description = "Jarvis using crewAI"
 authors = [{ name = "Oussama", email = "oussama.louhaidia@gmail.com" }]
 requires-python = ">=3.10,<3.13"
 dependencies = [
-    "crewai[tools]>=0.98.0,<1.0.0",
     "streamlit",
     "pyyaml",
     "streamlit-authenticator",
@@ -14,6 +13,7 @@ dependencies = [
     "pydantic",
     "graphviz",
     "open-interpreter",
+    "crewai",
     "crewai-tools>=0.32.1",
 ]
 
