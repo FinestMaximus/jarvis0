@@ -16,4 +16,3 @@ RUN uv sync
 EXPOSE 8051
 
 ENTRYPOINT ["streamlit", "run", "main.py", "--server.port=8051", "--server.address=0.0.0.0"]
-
