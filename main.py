@@ -120,16 +120,16 @@ def main() -> None:
         st.session_state["response_type"] = None
 
     try:
-        print("Checking if config.yaml exists")
-        if not os.path.exists("config.yaml"):
-            st.error("Configuration file 'config.yaml' not found.")
-            print("Configuration file 'config.yaml' not found.")
-            st.stop()
+        # print("Checking if config.yaml exists")
+        # if not os.path.exists("config.yaml"):
+        #     st.error("Configuration file 'config.yaml' not found.")
+        #     print("Configuration file 'config.yaml' not found.")
+        #     st.stop()
 
-        print("Loading user credentials from config.yaml")
-        with open("config.yaml") as file:
-            config = yaml.load(file, Loader=yaml.SafeLoader)
-            print(f"Config loaded: {config}")
+        # print("Loading user credentials from config.yaml")
+        # with open("config.yaml") as file:
+        #     config = yaml.load(file, Loader=yaml.SafeLoader)
+        #     print(f"Config loaded: {config}")
 
         selected_task = st.sidebar.radio(
             "Task",
