@@ -9,10 +9,12 @@ RUN apt-get update && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     uv venv
 
-COPY . .
+COPY pyproject.toml .
 
 RUN uv sync
 
+COPY . .
+
 EXPOSE 8051
 
-ENTRYPOINT ["streamlit", "run", "main.py", "--server.port=8051", "--server.address=0.0.0.0"]
+ENTRYPOINT ["/bin/sh", "-c", ". .venv/bin/activate && streamlit run main.py --server.port=8051 --server.address=0.0.0.0"]
