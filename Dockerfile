@@ -13,6 +13,7 @@ COPY . .
 
 RUN uv sync
 
-CMD ["/bin/bash", "-c", "source .venv/bin/activate && streamlit run main.py --server.port 8051 --server.address 0.0.0.0"]
+RUN echo "streamlit run main.py --server.port 8051 --server.address 0.0.0.0" > /run-command.sh && chmod +x /run-command.sh
+CMD ["/run-command.sh"]
 
 EXPOSE 8051
