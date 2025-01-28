@@ -12,6 +12,9 @@ pytm_docs = CodeDocsSearchTool(
     docs_url="https://raw.githubusercontent.com/OWASP/pytm/refs/heads/master/docs/pytm/index.html"
 )
 
+dot_docs = CodeDocsSearchTool(
+    docs_url="https://graphviz.org/documentation/"
+)
 
 @CrewBase
 class JarvisCrew:
@@ -28,7 +31,7 @@ class JarvisCrew:
         return Agent(
             config=self.agents_config["diagrammer"],
             llm=gpt_4o_mini,
-            tools=[pytm_docs],
+            tools=[pytm_docs, dot_docs],
         )
 
     @task
